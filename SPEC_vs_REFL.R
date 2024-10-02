@@ -23,6 +23,7 @@ library(blandr)
 library(gridExtra)
 library(car)
 library(lmtest)
+library(gridExtra)
 }
 
 # Data are in R_SPEC_REFL.xlsx file that have three sheets:
@@ -76,199 +77,278 @@ save(cc, file="cc.RData")
 save(cc_2, file="cc_2.RData")
 save(rivers, file="rivers.RData")
 
-# REGRESSION MODELS
-# Assessment of solutions with known concentrations
-model_cc2 <- lm(REFL ~ SPEC, data = cc_2)
-# Assessment of freshwater samples (sampled rivers by INA Sa27)
-model_rivers <- lm(REFL_f ~ SPEC_f, data = rivers)
-
-# Summary of models
-summary(model_cc2)
-summary(model_rivers)
-
-# Linear regression of assessment of solutions with known concentrations
-FIG_model_cc2<-ggplot(cc_2, aes(x = SPEC, y = REFL)) +
+#######################################################################
+# ASSESSMENT OF SOLUTIONS WITH KNOWN CONCENTRATIONS
+#######################################################################
+# Figure of linear regression (raw data)
+# Soluble reactive phosphorus (micrograms of P per liter)
+FIG_model_cc2 <- ggplot(cc_2, aes(x = REFL, y = SPEC)) +
   geom_point() +
   geom_smooth(method = "lm", se = TRUE, color = "blue") +
-  labs(title = "Soluble reactive phosphorus (micrograms of P per liter)",
-       x = "Spectrophotometer UV-Vis",
-       y = "Reflectoquant") +
-  theme_minimal()
+  labs(x = "Reflectoquant",
+       y = "Spectrophotometer UV-Vis") +
+  theme_minimal() +
+  theme(
+    text = element_text(size = 12),
+    axis.text = element_text(size = 18),
+    axis.title = element_text(size = 18, margin = margin(t = 10, r = 10, b = 10, l = 10)),
+    axis.title.x = element_text(margin = margin(t = 15)),
+    axis.title.y = element_text(margin = margin(r = 15)),
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 18)
+  )
 
 FIG_model_cc2 
 ggsave("~/Dropbox/manus/Concordancia_Met_Pdis/Figures/FIG_model_cc2.jpg", plot = FIG_model_cc2, dpi = 300, bg = "white")
 
+# Linear regression model
+model_cc2 <- lm(SPEC~ REFL , data = cc_2)
+summary(model_cc2)
 
-## SAMPLES FROM RIVERS
+# Breusch-Pagan Test for homocedasticity
+bptest(model_cc2)
 
-# Conversion data to long format
+# Shapiro-Wilk test
+shapiro.test(residuals(model_cc2))
+
+# Q-Q plot 
+residuals <- data.frame(residuals = residuals(model_log_cc2))
+
+qq_plot <- ggplot(residuals, aes(sample = residuals)) +
+  geom_qq() +
+  geom_qq_line(color = "red") +
+  labs( x = "Theoretical Quantiles",
+       y = "Residual Quantiles") +
+  theme_minimal() +
+  theme(
+    text = element_text(size = 12),
+    axis.text = element_text(size = 18, margin = margin(t = 15)),
+    axis.title = element_text(size = 18, margin = margin(t = 15)),
+    plot.title = element_text(size = 12, margin = margin(t = 15))
+  )
+qq_plot 
+
+ggsave("~/Dropbox/manus/Concordancia_Met_Pdis/Figures/FIG_QQ.jpg", plot = qq_plot, dpi = 300, bg = "white")
+
+# quantiles of REFL
+quantiles_REFL <- quantile(cc_2$REFL, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+print(quantiles_REFL)
+
+#######################################################################
+# ASSESSMENT OF FRESHWATER SAMPLES (SAMPLED RIVERS BY INA SA27)
+#######################################################################
+# rivers
+# SPEC_f: SRP concentrations determined by spectrophotometric method
+# REFL_f: SRP concentrations determined by reflectoometric method
+
+FIG_model_rivers <- ggplot(rivers, aes(x = REFL_f, y = SPEC_f)) +
+  geom_point(shape = 4, size = 3) + 
+  geom_smooth(method = "lm", se = TRUE, color = "blue", fill = "lightblue", show.legend = FALSE, level = 0.95) +  
+  labs(x = "Reflectoquant",
+       y = "Spectrophotometer") +
+  theme_minimal() +
+  theme(
+    text = element_text(size = 12),
+    axis.text = element_text(size = 18),
+    axis.title = element_text(size = 18, margin = margin(t = 10, r = 10, b = 10, l = 10)),
+    axis.title.x = element_text(margin = margin(t = 15)),
+    axis.title.y = element_text(margin = margin(r = 15)),
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 18)
+  ) + 
+  scale_x_continuous(limits = c(0, 2300)) + 
+  scale_y_continuous(limits = c(0, 2300)) +  
+  geom_vline(xintercept = 25, linetype = "dotted", color = "red") + 
+  geom_hline(yintercept = 25, linetype = "dotted", color = "red")
+  
+FIG_model_rivers
+
+ggsave("~/Dropbox/manus/Concordancia_Met_Pdis/Figures/FIG_model_rivers.jpg", plot = FIG_model_rivers, dpi = 300, bg = "white")
+
+
+# Linear regression model
+model_rivers <- lm( SPEC_f~ REFL_f, data = rivers)
+summary(model_rivers)
+bptest(model_rivers )
+shapiro.test(residuals(model_rivers ))
+
+# Q-Q plot 
+residuals2 <- data.frame(residuals = residuals(model_rivers))
+
+qq_plot2 <- ggplot(residuals2, aes(sample = residuals)) +
+  geom_qq() +
+  geom_qq_line(color = "red") +
+  labs( x = "Theoretical Quantiles",
+        y = "Residual Quantiles") +
+  theme_minimal() +
+  theme(
+    text = element_text(size = 12),
+    axis.text = element_text(size = 18, margin = margin(t = 15)),
+    axis.title = element_text(size = 18, margin = margin(t = 15)),
+    plot.title = element_text(size = 12, margin = margin(t = 15))
+  )
+qq_plot2 
+
+ggsave("~/Dropbox/manus/Concordancia_Met_Pdis/Figures/FIG_QQ2.jpg", plot = qq_plot2, dpi = 300, bg = "white")
+
+
+##################################################
+# Conversion data to long format and re-assessment
+##################################################
+
 rivers_long <- rivers %>%
   pivot_longer(cols = c(SPEC_f, REFL_f), names_to = "Methods", values_to = "value")
 
-# Histograms
-histogram<-ggplot(rivers_long, aes(x = value, fill = Methods)) +
+
+#################    HISTOGRAMS 
+# Histogram 1
+histogram1 <- ggplot(rivers_long, aes(x = value, fill = Methods)) +
   geom_histogram(alpha = 0.5, position = "dodge", bins = 30) +  
-  labs( x = "Value",
-       y = "Frequency") +
+  labs(x = "Value", y = "Frequency") +
   theme_minimal() +
   scale_fill_manual(values = c("SPEC_f" = "blue", "REFL_f" = "red"),
-                    labels = c("SPEC_f" = "Spectrophotometer", "REFL_f" = "Reflectoquant"))+
-  scale_x_log10() +  
-  theme(legend.position = c(0.80, 0.9))  
-
-histogram
-ggsave("~/Dropbox/manus/Concordancia_Met_Pdis/Figures/histogram.jpg", plot = histogram, dpi = 300, bg = "white")
+                    labels = c("SPEC_f" = "Spectrophotometer", "REFL_f" = "Reflectoquant")) +
+  theme(legend.position = "none") +
+  ylim(0, 90)  # Set y-axis limits
 
 
+histogram1
 
-FIG_model_rivers <- ggplot(rivers, aes(x = SPEC_f, y = REFL_f)) +
-  geom_point(shape = 4, size = 3) + 
-  geom_smooth(method = "lm", se = TRUE, color = "blue", fill = "lightblue", show.legend = FALSE) +  # Confidence interval in light blue
-  labs(title = "Soluble reactive phosphorus (micrograms of P per liter)",
-       x = "Spectrophotometer",
-       y = "Reflectoquant") +
+ggsave("~/Dropbox/manus/Concordancia_Met_Pdis/Figures/histogram1.jpg", plot = histogram1, dpi = 300, bg = "white")
+
+# Histogram 2
+histogram2 <- ggplot(rivers_long, aes(x = value, fill = Methods)) +
+  geom_histogram(alpha = 0.5, position = "dodge", bins = 30) +  
+  labs(x = "Value", y = "Frequency") +
   theme_minimal() +
-  scale_x_continuous(limits = c(0, 100)) +  # Set X axis limits
-  scale_y_continuous(limits = c(0, 100)) +  # Set Y axis limits
-  geom_vline(xintercept = 25, linetype = "dotted", color = "red") +  # Red dotted line at X = 25
-  geom_hline(yintercept = 25, linetype = "dotted", color = "red") +  # Red dotted line at Y = 25
-  theme(plot.title = element_text(hjust = 0.5))  # Center the title
+  scale_fill_manual(values = c("SPEC_f" = "blue", "REFL_f" = "red"),
+                    labels = c("SPEC_f" = "Spectrophotometer", "REFL_f" = "Reflectoquant")) +
+  scale_x_log10() +  
+  theme(legend.position = c(0.60, 0.9))  +
+  ylim(0, 90)  # Set y-axis limits
 
-FIG_model_rivers
+histogram2
 
-###################################
+ggsave("~/Dropbox/manus/Concordancia_Met_Pdis/Figures/histogram2.jpg", plot = histogram2, dpi = 300, bg = "white")
 
-# Suponiendo que 'rivers' contiene tus datos
-# SPEC_f: valores del método espectrofotométrico
-# REFL_f: valores del método reflectoquant
+combined_histograms <- grid.arrange(histogram1, histogram2, ncol = 2)
+ggsave("~/Dropbox/manus/Concordancia_Met_Pdis/Figures/combined_histograms.jpg", 
+       plot = combined_histograms, dpi = 300, bg = "white")
 
-# 1. Filtrar los datos por los tres rangos
+#####################################################
+# Data of rivers analyzed by ranges
+#rivers_0_100    : 0 - 100 micrograms/L
+#rivers_300_600  : 300 -600 micrograms/L
 
-rivers_0_2500 <- rivers
-rivers_60_2500 <- subset(rivers, SPEC_f >= 60)
-rivers_0_100 <- subset(rivers, SPEC_f <= 100)
+# Subset for each range
+rivers_0_100 <- subset(rivers, SPEC_f > 0 & SPEC_f <= 100)
+rivers_300_600 <- subset(rivers, SPEC_f >= 300 & SPEC_f <= 600)
 
-# 2. Crear modelos de regresión para cada rango
-
-# Modelo 0-2500
-model_0_2500 <- lm(REFL_f ~ SPEC_f, data = rivers_0_2500)
-summary(model_0_2500)
-
-# Modelo 60-2500
-model_60_2500 <- lm(REFL_f ~ SPEC_f, data = rivers_60_2500)
-summary(model_60_2500)
-
-# Modelo 0-100
+#linear regression models and residue analysis
 model_0_100 <- lm(REFL_f ~ SPEC_f, data = rivers_0_100)
 summary(model_0_100)
+bptest(model_0_100)  
+shapiro.test(residuals(model_0_100))
 
-# 3. Crear los gráficos de regresión
+model_300_600 <- lm(REFL_f ~ SPEC_f, data = rivers_300_600)
+summary(model_300_600)
+bptest(model_300_600)  
+shapiro.test(residuals(model_300_600))
 
-plot_0_2500 <- ggplot(rivers_0_2500, aes(x = SPEC_f, y = REFL_f)) +
-  geom_point(shape = 4, size = 3) + 
-  geom_smooth(method = "lm", se = TRUE, color = "blue", fill = "lightblue", show.legend = FALSE) +  
-  labs(title = "0-2500 micrograms/L",
-       x = "Spectrophotometer",
-       y = "Reflectoquant") +
-  theme_minimal() +
-  scale_x_continuous(limits = c(0, 2500)) +  
-  scale_y_continuous(limits = c(0, 2500)) +
-  geom_vline(xintercept = 25, linetype = "dotted", color = "red") +  
-  geom_hline(yintercept = 25, linetype = "dotted", color = "red") +
-  theme(plot.title = element_text(hjust = 0.5))
 
-plot_60_2500 <- ggplot(rivers_60_2500, aes(x = SPEC_f, y = REFL_f)) +
-  geom_point(shape = 4, size = 3) + 
-  geom_smooth(method = "lm", se = TRUE, color = "blue", fill = "lightblue", show.legend = FALSE) +  
-  labs(title = "60-2500 micrograms/L",
-       x = "Spectrophotometer",
-       y = "Reflectoquant") +
-  theme_minimal() +
-  scale_x_continuous(limits = c(60, 2500)) +  
-  scale_y_continuous(limits = c(0, 2500)) +
-  geom_vline(xintercept = 25, linetype = "dotted", color = "red") +  
-  geom_hline(yintercept = 25, linetype = "dotted", color = "red") +
-  theme(plot.title = element_text(hjust = 0.5))
-
-plot_0_100 <- ggplot(rivers_0_100, aes(x = SPEC_f, y = REFL_f)) +
-  geom_point(shape = 4, size = 3) + 
-  geom_smooth(method = "lm", se = TRUE, color = "blue", fill = "lightblue", show.legend = FALSE) +  
+# Create Q-Q plot for model 0-100
+qq_plot_model_0_100 <- ggplot(data.frame(residuals = residuals(model_0_100)), aes(sample = residuals)) +
+  stat_qq() +
+  stat_qq_line(color = "blue") +
   labs(title = "0-100 micrograms/L",
-       x = "Spectrophotometer",
-       y = "Reflectoquant") +
+       x = "Theoretical Quantiles",
+       y = "Sample Quantiles") +
   theme_minimal() +
-  scale_x_continuous(limits = c(0, 100)) +  
-  scale_y_continuous(limits = c(0, 100)) +
-  geom_vline(xintercept = 25, linetype = "dotted", color = "red") +  
-  geom_hline(yintercept = 25, linetype = "dotted", color = "red") +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(text = element_text(size = 12),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 12))
 
-# Unified figure with three plots
-grid.arrange(plot_0_2500, plot_60_2500, plot_0_100, ncol = 3)
+qq_plot_model_0_100
 
 
-# Breusch-Pagan Test for homocedasticity
-# model 0-2500  micrograms/L
-bptest(model_0_2500)  
-# model 60-2500  micrograms/L
-bptest(model_60_2500)
-# model 0-100  micrograms/L
-bptest(model_0_100)
+qq_plot_model_300_600 <- ggplot(data.frame(residuals = residuals(model_300_600)), aes(sample = residuals)) +
+  stat_qq() +
+  stat_qq_line(color = "blue") +
+  labs(title = "300-600 micrograms/L",
+       x = "Theoretical Quantiles",
+       y = "Sample Quantiles") +
+  theme_minimal() +
+  theme(text = element_text(size = 12),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 12))
 
-# Residues vs adjusted values 
-#model 0-2500 micrograms/L
-plot(fitted(model_0_2500), residuals(model_0_2500),
-     xlab = "Adjusted values", ylab = "Residues",
-     main = "Residues vs Adjusted values (0-2500)")
-abline(h = 0, col = "red")
+qq_plot_model_300_600 
 
-#model 60-2500 micrograms/L
-plot(fitted(model_60_2500), residuals(model_60_2500),
-     xlab = "Adjusted values", ylab = "Residues",
-     main = "Residues vs Adjusted values (60-2500)")
-abline(h = 0, col = "red")
+# Display the plots
+print(qq_plot_model_0_100)
+print(qq_plot_model_300_600)
 
-# model 0-100 micrograms/L
-plot(fitted(model_0_100), residuals(model_0_100),
-     xlab = "Adjusted values", ylab = "Residues",
-     main = "Residues vs Adjusted values (0-100)")
-abline(h = 0, col = "red")
+combined_qq <- grid.arrange(qq_plot_model_0_100, qq_plot_model_300_600, ncol = 2)
+ggsave("~/Dropbox/manus/Concordancia_Met_Pdis/Figures/combined_qq_plot_models.jpg", 
+       plot = combined_qq , dpi = 300, bg = "white")
 
 
+###############################################################################
+#BLAND-ALTMAN analysis (with BlandAltmanLeh)
 
+# means of SPEC and REFL
+cc$SPEC_mean <- rowMeans(cbind(cc$SPEC_1, cc$SPEC_2, cc$SPEC_3))
+cc$REFL_mean <- rowMeans(cbind(cc$REFL_1, cc$REFL_2, cc$REFL_3))
 
+# mean and difference between two methods
+cc$mean<- rowMeans(cbind(cc$SPEC_mean, cc$REFL_mean))
+cc$difference <- cc$SPEC_mean - cc$REFL_mean
 
+# difference mean
+difference_mean<- mean(cc$difference, na.rm = TRUE) 
+print(difference_mean)
 
-#ANÁLISIS DE BLAND-ALTMAN
+head(cc)
+str(cc)
 
-# promedio de las réplicas para SPEC y REFL
-cc_2$SPEC_promedio <- rowMeans(cbind(cc_2$SPEC_1, cc_2$SPEC_2, cc_2$SPEC_3))
-cc_2$REFL_promedio <- rowMeans(cbind(cc_2$REFL_1, cc_2$REFL_2, cc_2$REFL_3))
-
-# media y la diferencia entre los dos métodos
-metodos$media <- rowMeans(cbind(metodos$SPEC_promedio, metodos$REFL_promedio))
-metodos$diferencia <- metodos$SPEC_promedio - metodos$REFL_promedio
-
-# media de la diferencia
-media_diferencia <- mean(metodos$diferencia, na.rm = TRUE)  # na.rm = TRUE elimina los NA
-print(media_diferencia)
-
-# estructura del dataframe
-head(metodos)
-
-# análisis de Bland-Altman (with BlandAltmanLeh)
-fig3<-bland.altman.plot(metodos$SPEC_promedio, metodos$REFL_promedio, graph.sys = "ggplot2")
-fig3 <- fig3 + xlab("Differences") + ylab("Mean of measurements")
-fig3 <- fig3 + theme(
-  text = element_text(size = 12),  # Tamaño general del texto
-  axis.title = element_text(size = 12),  # Tamaño de los títulos de los ejes
-  axis.text = element_text(size = 12),  # Tamaño de los textos de los ejes
-  plot.title = element_text(size = 12, face = "bold")  # Tamaño del título del gráfico
+# Bland-Altman (with BlandAltmanLeh)
+fig_bland.altman.plot<-bland.altman.plot(cc$SPEC_mean, cc$REFL_mean, graph.sys = "ggplot2")
+fig_bland.altman.plot <- fig_bland.altman.plot + xlab("Differences") + ylab("Mean of measurements")
+fig_bland.altman.plot <- fig_bland.altman.plot + theme(
+  text = element_text(size = 16), 
+  axis.title = element_text(size = 16),  
+  axis.text = element_text(size = 16),  
+  plot.title = element_text(size = 14, face = "bold") 
 )
+fig_bland.altman.plot
 
-ggsave("~/Dropbox/manus/Concordancia_Met_Pdis/Figures/fig3.png", plot = fig3, dpi = 300)
+ggsave("~/Dropbox/manus/Concordancia_Met_Pdis/Figures/fig_bland.altman.plot.jpg", plot = fig_bland.altman.plot, dpi = 300, bg="white")
 
+################### Rivers
+# means of SPEC and REFL
+rivers$SPEC_mean <- rowMeans(cbind(rivers$SPEC_f))
+rivers$REFL_mean <- rowMeans(cbind(rivers$REFL_f))
 
-  
+# mean and difference between two methods
+rivers$mean<- rowMeans(cbind(rivers$SPEC_mean, rivers$REFL_mean))
+rivers$difference <- rivers$SPEC_mean - rivers$REFL_mean
 
- 
+# difference mean_rivers
+difference_mean_riv<- mean(rivers$difference, na.rm = TRUE) 
+print(difference_mean_riv)
+
+head(rivers)
+str(rivers)
+
+# Bland-Altman (with BlandAltmanLeh)
+fig_bland.altman.plot_riv<-bland.altman.plot(rivers$SPEC_mean, rivers$REFL_mean, graph.sys = "ggplot2")
+fig_bland.altman.plot_riv <- fig_bland.altman.plot_riv + xlab("Differences") + ylab("Mean of measurements")
+fig_bland.altman.plot_riv <- fig_bland.altman.plot_riv + theme(
+  text = element_text(size = 16), 
+  axis.title = element_text(size = 16),  
+  axis.text = element_text(size = 16),  
+  plot.title = element_text(size = 14, face = "bold") 
+)
+fig_bland.altman.plot_riv
+
+ggsave("~/Dropbox/manus/Concordancia_Met_Pdis/Figures/fig_bland.altman.plot_riv.jpg", plot = fig_bland.altman.plot_riv, dpi = 300, bg="white")
