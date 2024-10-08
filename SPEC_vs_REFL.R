@@ -4,9 +4,11 @@
 # Leonidas Carrasco-Letelier 
 # Natural Resources, Production and Environment, INIA Uruguay, Uruguay
 # Forestry System, Production and Environment, INIA Uruguay, Uruguay
+# lcarrasco(at)inia.org.uy
 
 # Andrés Hirigoyen
 # Forestry System, Production and Environment, INIA Uruguay, Uruguay
+# ahirigoyen(at)inia.org.uy
 
 
 # Libraries
